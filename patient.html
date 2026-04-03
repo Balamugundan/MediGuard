@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#6c5ce7"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <title>MediGuard – Patient</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── Patient accent overrides ── */
+    :root{--accent:#a29bfe;--accent2:#6c5ce7}
+
+    html,body{height:100%;margin:0;padding:0;overflow-x:hidden}
+    body{display:flex;flex-direction:column;background:#0a0f1e}
+
+    /* ── Fixed top bars ── */
+    .device-bar{
+      position:fixed;top:0;left:0;right:0;height:36px;z-index:300;
+      background:#070c1a;border-bottom:1px solid #1e3060;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 20px;font-size:12px;color:#8fa3c8;
+    }
+    .device-bar strong{color:#a29bfe}
+    .switch-btn{
+      background:rgba(0,212,170,.15);border:1px solid rgba(0,212,170,.35);
+      color:#00d4aa;padding:4px 13px;border-radius:7px;
+      font-size:11px;font-weight:700;text-decoration:none;font-family:'Sora',sans-serif;
+    }
+    .switch-btn:hover{background:rgba(0,212,170,.28)}
+
+    /* Patient topbar — sits below device-bar */
+    .pt-topbar{
+      position:fixed;top:36px;left:0;right:0;height:54px;z-index:200;
+      background:#0d1530;border-bottom:1px solid #1e3060;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 20px;
+    }
+    .pt-logo{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:800;color:#e8f0fe}
+    .pt-role-badge{
+      display:inline-flex;align-items:center;
+      background:rgba(162,155,254,.15);border:1px solid rgba(162,155,254,.35);
+      color:#a29bfe;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;margin-left:6px;
+    }
+    .pt-clock{
+      font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;color:#a29bfe;
+      background:rgba(162,155,254,.1);padding:4px 12px;border-radius:8px;
+      border:1px solid rgba(162,155,254,.2);
+    }
+
+    /* ── Scrollable body below both bars ── */
+    .pt-body{
+      margin-top:90px;/* 36 device-bar + 54 topbar */
+      padding:20px;
+      max-width:520px;width:100%;margin-left:auto;margin-right:auto;
+      box-sizing:border-box;
+    }
+
+    /* ── Hero card ── */
+    .pt-hero{
+      background:#13213f;border-radius:16px;border:1px solid #1e3060;
+      padding:24px 20px;margin-bottom:16px;text-align:center;
+    }
+    .pt-hero-icon{font-size:52px;margin-bottom:10px}
+    .pt-hero-name{font-size:20px;font-weight:800;color:#e8f0fe;margin-bottom:4px}
+    .pt-hero-sub{font-size:13px;color:#8fa3c8}
+    .pt-sw-status{margin-top:8px;font-size:12px;color:#00d4aa}
+
+    /* ── Stats row ── */
+    .pt-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+    .pts-card{background:#13213f;border-radius:12px;border:1px solid #1e3060;padding:12px;text-align:center}
+    .pts-num{font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace}
+    .pts-label{font-size:10px;color:#8fa3c8;margin-top:2px}
+    .pts-card.g .pts-num{color:#00d4aa}
+    .pts-card.o .pts-num{color:#ff9f43}
+    .pts-card.r .pts-num{color:#ff6b6b}
+
+    /* ── Next dose card ── */
+    .next-dose-card{
+      background:linear-gradient(135deg,rgba(162,155,254,.12),rgba(108,92,231,.08));
+      border:1px solid rgba(162,155,254,.3);border-radius:16px;
+      padding:20px;margin-bottom:16px;text-align:center;
+    }
+    .nd-label{font-size:11px;color:#8fa3c8;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+    .nd-name{font-size:17px;font-weight:800;color:#e8f0fe;margin-bottom:4px}
+    .nd-time{font-size:34px;font-weight:800;font-family:'JetBrains Mono',monospace;color:#a29bfe;margin:6px 0}
+    .nd-dosage{font-size:13px;color:#8fa3c8}
+    .nd-instr{font-size:11px;color:#4a6080;margin-top:5px}
+    .nd-done{font-size:14px;color:#8fa3c8;padding:16px}
+
+    /* ── Today list card ── */
+    .today-card{background:#13213f;border-radius:16px;border:1px solid #1e3060;overflow:hidden;margin-bottom:16px}
+    .today-card-hdr{display:flex;align-items:center;justify-content:space-between;
+      padding:14px 18px;border-bottom:1px solid #1e3060}
+    .today-card-hdr h3{font-size:14px;font-weight:700;color:#e8f0fe;margin:0}
+
+    /* ── No meds notice ── */
+    .no-meds-notice{
+      background:rgba(162,155,254,.08);border:1px solid rgba(162,155,254,.25);
+      border-radius:14px;padding:22px;text-align:center;color:#8fa3c8;font-size:13px;
+      line-height:1.7;
+    }
+
+    /* ── Responsive ── */
+    @media(max-width:480px){
+      .pt-body{padding:14px;margin-top:90px}
+      .nd-time{font-size:28px}
+    }
+  </style>
+</head>
+<body>
+
+<!-- Fixed device bar -->
+<div class="device-bar">
+  <span>👤 <strong>Patient Mode</strong> — medicine reminders only</span>
+  <a href="guardian.html" class="switch-btn">Guardian View →</a>
+</div>
+
+<!-- Fixed patient topbar -->
+<header class="pt-topbar">
+  <div class="pt-logo">
+    💊 MediGuard
+    <span class="pt-role-badge">Patient</span>
+  </div>
+  <div class="pt-clock" id="clockDisplay">--:--:--</div>
+</header>
+
+<!-- Scrollable content -->
+<div class="pt-body">
+
+  <!-- Hero -->
+  <div class="pt-hero">
+    <div class="pt-hero-icon">💊</div>
+    <div class="pt-hero-name" id="patientHeroName">Loading…</div>
+    <div class="pt-hero-sub">Your medicine reminders are active</div>
+    <div class="pt-sw-status" id="swPatientStatus">● Connecting to background alarm…</div>
+  </div>
+
+  <!-- Stats -->
+  <div class="pt-stats">
+    <div class="pts-card g"><div class="pts-num" id="ptStatTaken">0</div><div class="pts-label">✅ Taken</div></div>
+    <div class="pts-card o"><div class="pts-num" id="ptStatPending">0</div><div class="pts-label">⏳ Pending</div></div>
+    <div class="pts-card r"><div class="pts-num" id="ptStatMissed">0</div><div class="pts-label">⚠️ Missed</div></div>
+  </div>
+
+  <!-- Next dose -->
+  <div id="nextDoseSection"></div>
+
+  <!-- Today list -->
+  <div class="today-card">
+    <div class="today-card-hdr">
+      <h3>Today's Medicines</h3>
+      <span class="badge" id="ptTodayBadge">0 doses</span>
+    </div>
+    <div class="today-list" id="ptTodayList" style="padding:10px">
+      <div class="empty-state">Guardian will set your schedule.</div>
+    </div>
+  </div>
+
+  <!-- No medicines notice -->
+  <div id="noMedsNotice" class="no-meds-notice" style="display:none">
+    ⚠️ No medicines added yet.<br/>Ask your guardian to set your schedule on the Guardian device.
+  </div>
+
+</div><!-- /pt-body -->
+
+<!-- ══ REMINDER MODAL ══ -->
+<div class="modal-overlay" id="reminderModal">
+  <div class="reminder-modal">
+    <div class="reminder-pulse"></div>
+    <div class="voice-speaking-bar" id="voiceBar">
+      <span class="voice-dot"></span><span class="voice-dot"></span><span class="voice-dot"></span>
+      <span style="font-size:11px;font-weight:600;color:var(--accent);margin-left:6px">🗣️ Voice Reminder Active</span>
+    </div>
+    <div class="reminder-icon">⏰</div>
+    <h2 class="reminder-title">Medicine Time!</h2>
+    <div class="reminder-med-info">
+      <div class="reminder-med-image" id="reminderMedImage"></div>
+      <div class="reminder-med-details" id="reminderMedDetails"></div>
+    </div>
+    <p class="reminder-instructions" id="reminderInstructions"></p>
+    <div class="guardian-call-info" id="guardianCallInfo">
+      📹 Taking Now → WhatsApp video call to guardian
+    </div>
+    <div class="reminder-timer">
+      No response in <span class="timer-count" id="reminderTimerCount">60</span>s → Auto alert sent
+    </div>
+    <div class="reminder-actions">
+      <button class="btn-danger"    onclick="dismissReminder('skip')">❌ Skip</button>
+      <button class="btn-videocall" onclick="patientTakingNow()">📹 Taking Now</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="alertModal">
+  <div class="alert-modal">
+    <div class="alert-icon" id="alertIcon">ℹ️</div>
+    <h3 id="alertTitle">Info</h3><p id="alertMessage"></p>
+    <button class="btn-primary" onclick="closeAlert()">OK</button>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<script src="patient-app.js"></script>
+</body>
+</html>

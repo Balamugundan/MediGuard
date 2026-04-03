@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#00d4aa"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <title>MediGuard – Guardian</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    html,body{height:100%;margin:0;padding:0;overflow-x:hidden}
+    body{display:flex;flex-direction:column}
+
+    .device-bar{
+      position:fixed;top:0;left:0;right:0;height:36px;z-index:300;
+      background:#070c1a;border-bottom:1px solid #1e3060;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 20px;font-size:12px;color:#8fa3c8;flex-shrink:0;
+    }
+    .device-bar strong{color:#00d4aa}
+    .switch-btn{
+      background:rgba(0,153,255,.18);border:1px solid rgba(0,153,255,.45);
+      color:#0099ff;padding:4px 13px;border-radius:7px;
+      font-size:11px;font-weight:700;text-decoration:none;font-family:'Sora',sans-serif;
+    }
+    .switch-btn:hover{background:rgba(0,153,255,.32)}
+
+    /* Push everything below the fixed bar */
+    .sidebar{
+      position:fixed;top:36px;left:0;
+      width:240px;height:calc(100vh - 36px);
+      background:#0d1530;border-right:1px solid #1e3060;
+      display:flex;flex-direction:column;z-index:100;overflow-y:auto;
+      padding-top:0;
+    }
+    .main-content{
+      margin-left:240px;
+      margin-top:36px;
+      flex:1;display:flex;flex-direction:column;min-height:calc(100vh - 36px);
+    }
+
+    .role-badge{
+      display:inline-flex;align-items:center;
+      background:rgba(0,212,170,.15);border:1px solid rgba(0,212,170,.35);
+      color:#00d4aa;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;
+      margin-left:6px;vertical-align:middle;
+    }
+    .pstat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+    .pstat-card{background:#13213f;border-radius:12px;border:1px solid #1e3060;padding:14px;text-align:center}
+    .pstat-num{font-size:26px;font-weight:800;font-family:'JetBrains Mono',monospace}
+    .pstat-label{font-size:10px;color:#8fa3c8;margin-top:3px}
+    .pstat-card.g .pstat-num{color:#00d4aa}
+    .pstat-card.o .pstat-num{color:#ff9f43}
+    .pstat-card.r .pstat-num{color:#ff6b6b}
+    .alert-banner{
+      background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.35);
+      border-radius:10px;padding:11px 16px;margin-bottom:14px;font-size:13px;
+      color:#ff6b6b;display:none;align-items:center;gap:10px;
+    }
+    .alert-banner.show{display:flex}
+
+    @media(max-width:768px){
+      .sidebar{transform:translateX(-100%);width:240px}
+      .sidebar.open{transform:translateX(0)}
+      .main-content{margin-left:0}
+      .page{padding:14px}
+    }
+  </style>
+</head>
+<body>
+
+<div class="device-bar">
+  <span>👁️ <strong>Guardian Mode</strong> — managing patient schedule</span>
+  <a href="patient.html" class="switch-btn">Switch to Patient View →</a>
+</div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-icon">💊</span>
+    <span class="logo-text">MediGuard</span>
+    <span class="role-badge">Guardian</span>
+  </div>
+  <ul class="nav-links">
+    <li class="nav-item active" data-page="dashboard"    onclick="showPage('dashboard',this)">   <span class="nav-icon">🏠</span><span>Dashboard</span></li>
+    <li class="nav-item"        data-page="add-medicine" onclick="showPage('add-medicine',this)"><span class="nav-icon">➕</span><span>Add Medicine</span></li>
+    <li class="nav-item"        data-page="schedule"     onclick="showPage('schedule',this)">    <span class="nav-icon">📅</span><span>Schedule</span></li>
+    <li class="nav-item"        data-page="contacts"     onclick="showPage('contacts',this)">    <span class="nav-icon">👥</span><span>Contacts</span></li>
+    <li class="nav-item"        data-page="history"      onclick="showPage('history',this)">     <span class="nav-icon">📋</span><span>History</span></li>
+  </ul>
+  <div class="sidebar-footer">
+    <div class="patient-badge">
+      <span class="patient-avatar">👁️</span>
+      <div>
+        <div class="patient-name" id="patientNameDisplay">Patient</div>
+        <div class="patient-status" style="color:#00d4aa">● Guardian Device</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main class="main-content">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+      <div class="page-title" id="pageTitle">Dashboard</div>
+    </div>
+    <div class="topbar-right">
+      <div class="clock-display" id="clockDisplay">--:--:--</div>
+      <div class="date-display"  id="dateDisplay">--</div>
+    </div>
+  </header>
+
+  <!-- DASHBOARD -->
+  <section class="page active" id="page-dashboard">
+    <div class="alert-banner" id="missedBanner">
+      <span style="font-size:18px">🚨</span>
+      <span id="missedBannerText">Patient missed a dose!</span>
+    </div>
+    <div class="pstat-grid">
+      <div class="pstat-card g"><div class="pstat-num" id="statTaken">0</div><div class="pstat-label">✅ Taken</div></div>
+      <div class="pstat-card o"><div class="pstat-num" id="statPending">0</div><div class="pstat-label">⏳ Pending</div></div>
+      <div class="pstat-card r"><div class="pstat-num" id="statMissed">0</div><div class="pstat-label">⚠️ Missed</div></div>
+    </div>
+    <div class="dashboard-grid">
+      <div class="card">
+        <div class="card-header"><h3>Patient's Today Schedule</h3><span class="badge" id="todayBadge">0 doses</span></div>
+        <div class="today-list" id="todayList"><div class="empty-state">No medicines scheduled</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Next Reminder</h3></div>
+        <div class="next-reminder" id="nextReminder"><div class="no-reminder">No upcoming reminders</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADD MEDICINE -->
+  <section class="page" id="page-add-medicine">
+    <div class="form-container">
+      <div class="form-card">
+        <h2 class="form-title">Add New Medicine for Patient</h2>
+        <p class="form-subtitle" style="color:#00d4aa;font-size:12px;font-weight:600;margin-bottom:16px">
+          ⚡ Guardian sets schedule here — patient device auto-receives reminders
+        </p>
+        <div class="form-group">
+          <label>Medicine Name *</label>
+          <input type="text" id="medName" placeholder="e.g. Paracetamol 500mg" class="input-field"/>
+        </div>
+        <div class="form-group">
+          <label>Medicine Image <span class="hint-text">(optional)</span></label>
+          <div class="image-upload-area" style="position:relative">
+            <input type="file" id="medImage" accept="image/*" onchange="previewImage(event)" hidden/>
+            <div class="upload-placeholder" id="uploadPlaceholder" onclick="document.getElementById('medImage').click()">
+              <span class="upload-icon">📷</span><span>Tap to upload tablet photo</span><span class="upload-hint">JPG, PNG</span>
+            </div>
+            <img id="imagePreview" src="" alt="Preview" class="image-preview hidden"/>
+            <button class="btn-remove-img hidden" id="removeImgBtn" onclick="removeImage()">✕ Remove</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Dosage</label>
+            <input type="text" id="medDosage" placeholder="e.g. 1 tablet" class="input-field"/>
+          </div>
+          <div class="form-group">
+            <label>Frequency</label>
+            <select id="medFrequency" class="input-field" onchange="syncFrequencyToTimes()">
+              <option value="1">Once daily</option><option value="2">Twice daily</option>
+              <option value="3">Three times daily</option><option value="4">Four times daily</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+        </div>
+        <div class="freq-info-banner"><span id="freqInfoText">1 reminder/day</span></div>
+        <div class="form-group">
+          <label>Reminder Times</label>
+          <div class="time-inputs" id="timeInputs">
+            <div class="time-input-row">
+              <input type="time" class="time-input input-field" value="08:00"/>
+              <button class="btn-icon" onclick="removeTimeInput(this)">✕</button>
+            </div>
+          </div>
+          <button class="btn-add-time" onclick="addTimeInput()">+ Add Custom Time</button>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Start Date *</label><input type="date" id="startDate" class="input-field"/></div>
+          <div class="form-group"><label>End Date</label><input type="date" id="endDate" class="input-field"/></div>
+        </div>
+        <div class="form-group">
+          <label>Days of Week</label>
+          <div class="days-selector">
+            <button class="day-btn active" data-day="0">Sun</button>
+            <button class="day-btn active" data-day="1">Mon</button>
+            <button class="day-btn active" data-day="2">Tue</button>
+            <button class="day-btn active" data-day="3">Wed</button>
+            <button class="day-btn active" data-day="4">Thu</button>
+            <button class="day-btn active" data-day="5">Fri</button>
+            <button class="day-btn active" data-day="6">Sat</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Special Instructions</label>
+          <textarea id="medInstructions" placeholder="e.g. Take after food" class="input-field textarea"></textarea>
+        </div>
+        <div class="form-actions">
+          <button class="btn-secondary" onclick="clearForm()">Clear</button>
+          <button class="btn-primary"   onclick="saveMedicine()">💊 Save Medicine</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCHEDULE -->
+  <section class="page" id="page-schedule">
+    <div class="schedule-header"><h2>Medicine Schedule</h2></div>
+    <div class="medicines-list" id="medicinesList"></div>
+  </section>
+
+  <!-- CONTACTS -->
+  <section class="page" id="page-contacts">
+    <div class="form-container">
+      <div class="form-card">
+        <h2 class="form-title">People & Contacts</h2>
+        <p class="form-subtitle">Guardian + Doctor receive WhatsApp alerts when patient misses or skips doses.</p>
+        <div class="form-group">
+          <label>Patient Name *</label>
+          <input type="text" id="patientName" placeholder="Full name" class="input-field"/>
+        </div>
+        <div class="wa-info-banner"><span>📱 Enter with country code — e.g. +91XXXXXXXXXX</span></div>
+        <h3 class="section-label">Guardian (video call + text alerts)</h3>
+        <div class="form-row">
+          <div class="form-group"><input type="text" id="guardianName"  placeholder="Guardian Name"  class="input-field"/></div>
+          <div class="form-group"><input type="tel"  id="guardianPhone" placeholder="+91XXXXXXXXXX"  class="input-field"/></div>
+        </div>
+        <h3 class="section-label">Doctor (text alerts only)</h3>
+        <div class="form-row">
+          <div class="form-group"><input type="text" id="doctorName"  placeholder="Doctor Name"   class="input-field"/></div>
+          <div class="form-group"><input type="tel"  id="doctorPhone" placeholder="+91XXXXXXXXXX" class="input-field"/></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-primary"   onclick="saveContacts()">💾 Save Contacts</button>
+          <button class="btn-secondary" onclick="testWhatsApp()">📱 Test WhatsApp</button>
+        </div>
+        <div class="contacts-display" id="contactsDisplay"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="page" id="page-history">
+    <div class="card">
+      <div class="card-header">
+        <h3>Medicine History</h3>
+        <button class="btn-secondary small" onclick="clearHistory()">Clear</button>
+      </div>
+      <div class="history-list" id="historyList"><div class="empty-state">No history yet</div></div>
+    </div>
+  </section>
+</main>
+
+<div class="modal-overlay" id="alertModal">
+  <div class="alert-modal">
+    <div class="alert-icon" id="alertIcon">ℹ️</div>
+    <h3 id="alertTitle">Info</h3><p id="alertMessage"></p>
+    <button class="btn-primary" onclick="closeAlert()">OK</button>
+  </div>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+<script src="guardian-app.js"></script>
+</body>
+</html>
